@@ -1,10 +1,10 @@
 {
-	"@metadata": {
-		"authors": [
-			"David Wong"
-		]
-	},
-	"listduplicateusers-description": "Special page that lists duplicate users.",
-	"listduplicateusers": "Duplicate user list",
-	"action-listduplicateusers": "list duplicate users"
+    "@metadata": {
+        "authors": [
+            "David Wong"
+        ]
+    },
+    "listduplicateusers-description": "Special page that lists duplicate users.",
+    "listduplicateusers": "Duplicate user list",
+    "action-listduplicateusers": "list duplicate users"
 }
