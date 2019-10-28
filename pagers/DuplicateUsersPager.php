@@ -168,9 +168,9 @@ class DuplicateUsersPager extends AlphabeticPager {
         ];
 
 
-        $dbr = $this->getDatabase();
-        $sqlText = $dbr->selectSQLText($query["tables"], $query["fields"], $query["conds"], __METHOD__, $query["options"], $query["join_conds"]);
-
+//        $dbr = $this->getDatabase();
+//        $sqlText = $dbr->selectSQLText($query["tables"], $query["fields"], $query["conds"], __METHOD__, $query["options"], $query["join_conds"]);
+//
 //        print($sqlText . "\r\n\r\n\r\n<br/><br/>");
 
         Hooks::run('SpecialListusersQueryInfo', [$this, &$query]);
