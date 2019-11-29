@@ -132,16 +132,22 @@ class DuplicateUsersPager extends AlphabeticPager {
 
         $options['GROUP BY'] = ($this->creationSort ? 'user_id' : 'user_name');
 
+        $bQuery = [
+            'tables' => ['user'],
+            'fields' => ['user_email'],
+            'conds' => ['char_length(user_email) > 0'],
+            'options' => [
+                'GROUP BY' => 'user_email',
+                'HAVING' => 'count(*) > 1'
+            ],
+            'join_conds' => []
+        ];
+        $bSqlText = $dbr->selectSQLText($bQuery["tables"], $bQuery["fields"], $bQuery["conds"], __METHOD__, $bQuery["options"], $bQuery["join_conds"]);
+
         $query = [
             'tables' => [
                 'a' => 'user',
-                'b' => new Subquery('
-                    select user_email
-                    from `user`
-                    where char_length(user_email) > 0 
-                    group by user_email
-                    having count(*) > 1
-                '),
+                'b' => new Subquery($bSqlText),
                 'user_groups',
                 'ipblocks'
             ],
@@ -167,11 +173,8 @@ class DuplicateUsersPager extends AlphabeticPager {
             'conds' => $conds
         ];
 
-
-//        $dbr = $this->getDatabase();
 //        $sqlText = $dbr->selectSQLText($query["tables"], $query["fields"], $query["conds"], __METHOD__, $query["options"], $query["join_conds"]);
-//
-//        print($sqlText . "\r\n\r\n\r\n<br/><br/>");
+//        print("\r\n" . $sqlText . "\r\n\r\n\r\n<br/><br/>");
 
         Hooks::run('SpecialListusersQueryInfo', [$this, &$query]);
 
