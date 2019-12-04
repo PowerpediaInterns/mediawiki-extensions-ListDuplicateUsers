@@ -142,7 +142,7 @@ class DuplicateUsersPager extends AlphabeticPager {
             ],
             'join_conds' => []
         ];
-        $bSqlText = $dbr->selectSQLText($bQuery["tables"], $bQuery["fields"], $bQuery["conds"], __METHOD__, $bQuery["options"], $bQuery["join_conds"]);
+        $bSqlText = $dbr->selectSQLText($bQuery['tables'], $bQuery['fields'], $bQuery['conds'], __METHOD__, $bQuery['options'], $bQuery['join_conds']);
 
         $query = [
             'tables' => [
@@ -173,8 +173,8 @@ class DuplicateUsersPager extends AlphabeticPager {
             'conds' => $conds
         ];
 
-//        $sqlText = $dbr->selectSQLText($query["tables"], $query["fields"], $query["conds"], __METHOD__, $query["options"], $query["join_conds"]);
-//        print("\r\n" . $sqlText . "\r\n\r\n\r\n<br/><br/>");
+//        $sqlText = $dbr->selectSQLText($query['tables'], $query['fields'], $query['conds'], __METHOD__, $query['options'], $query['join_conds']);
+//        print('\r\n' . $sqlText . '\r\n\r\n\r\n<br/><br/>');
 
         Hooks::run('SpecialListusersQueryInfo', [$this, &$query]);
 
