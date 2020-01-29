@@ -6,5 +6,9 @@
     },
     "listduplicateusers-description": "Special page that lists duplicate users.",
     "listduplicateusers": "Duplicate user list",
+    "listduplicateusers-showblocked": "Show blocked users",
+    "listduplicateusers-userid": "User ID",
+    "listduplicateusers-username": "User name",
+    "listduplicateusers-useremail": "User email",
     "action-listduplicateusers": "list duplicate users"
 }
