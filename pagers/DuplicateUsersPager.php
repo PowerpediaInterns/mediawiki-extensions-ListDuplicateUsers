@@ -71,6 +71,7 @@ class DuplicateUsersPager extends AlphabeticPager {
         if (in_array($this->requestedGroup, $symsForAll)) {
             $this->requestedGroup = '';
         }
+        $this->showBlocked = $request->getBool('showBlocked', false);
         $this->editsOnly = $request->getBool('editsOnly');
         $this->creationSort = $request->getBool('creationSort');
         $this->including = $including;
@@ -92,10 +93,24 @@ class DuplicateUsersPager extends AlphabeticPager {
     }
 
     /**
-     * @return string
+     * @return string|string[]
      */
     function getIndexField() {
-        return ($this->creationSort ? 'user_id' : 'user_name');
+        return [
+            'user_email',
+            ($this->creationSort ? 'user_id' : 'user_name')
+        ];
+    }
+
+    /**
+     * @return array
+     */
+    function getOrderTypeMessages() {
+        return [
+            'user_id' => 'listduplicateusers-userid',
+            'user_name' => 'listduplicateusers-username',
+            'user_email' => 'listduplicateusers-useremail'
+        ];
     }
 
     /**
@@ -124,6 +139,13 @@ class DuplicateUsersPager extends AlphabeticPager {
             } else {
                 $conds[] = 'user_name >= ' . $dbr->addQuotes($this->requestedUser);
             }
+        }
+
+//        $output = $this->getOutput();
+//        $output->addHTML($this->showBlocked);
+
+        if (!$this->showBlocked) {
+            $conds[] = 'ipb_deleted IS NULL';
         }
 
         if ($this->editsOnly) {
@@ -174,7 +196,8 @@ class DuplicateUsersPager extends AlphabeticPager {
         ];
 
 //        $sqlText = $dbr->selectSQLText($query['tables'], $query['fields'], $query['conds'], __METHOD__, $query['options'], $query['join_conds']);
-//        print('\r\n' . $sqlText . '\r\n\r\n\r\n<br/><br/>');
+//        $output = $this->getOutput();
+//        $output->addHTML("\r\n" . $sqlText . "\r\n\r\n\r\n<br/><br/>");
 
         Hooks::run('SpecialListusersQueryInfo', [$this, &$query]);
 
@@ -214,8 +237,14 @@ class DuplicateUsersPager extends AlphabeticPager {
 
         $item = $lang->specialList($ulinks, $groups);
 
+        $wordSeparator = $this->msg('word-separator')->escaped();
+
         $userEmail = $row->user_email;
-        $email = " <a class=\"email\" href=\"mailto:$userEmail\" data-email=\"$userEmail\">$userEmail</a> ";
+        $email = $wordSeparator . Html::rawElement('a', [
+            'class' => 'email mw-useremail',
+            'href' => "mailto:$userEmail",
+            'data-email' => "$userEmail"
+        ], $userEmail);
 
         if ($row->ipb_deleted) {
             $item = "<span class=\"deleted\">$item</span>";
@@ -224,7 +253,7 @@ class DuplicateUsersPager extends AlphabeticPager {
         $edits = '';
         if (!$this->including && $this->getConfig()->get('Edititis')) {
             $count = $this->msg('usereditcount')->numParams($row->edits)->escaped();
-            $edits = $this->msg('word-separator')->escaped() . $this->msg('brackets', $count)->escaped();
+            $edits = $wordSeparator . $this->msg('brackets', $count)->escaped();
         }
 
         $created = '';
@@ -234,10 +263,10 @@ class DuplicateUsersPager extends AlphabeticPager {
             $d = $lang->userDate($row->creation, $user);
             $t = $lang->userTime($row->creation, $user);
             $created = $this->msg('usercreated', $d, $t, $row->user_name)->escaped();
-            $created = ' ' . $this->msg('parentheses')->rawParams($created)->escaped();
+            $created = $wordSeparator . $this->msg('parentheses')->rawParams($created)->escaped();
         }
         $blocked = (!is_null($row->ipb_deleted) ?
-            ' ' . $this->msg('listusers-blocked', $userName)->escaped() :
+            $wordSeparator . $this->msg('listusers-blocked', $userName)->escaped() :
             '');
 
         Hooks::run('SpecialListusersFormatRow', [&$item, $row]);
@@ -315,6 +344,13 @@ class DuplicateUsersPager extends AlphabeticPager {
                 'default' => $this->requestedGroup,
                 'class' => HTMLSelectField::class,
                 'options' => $groupOptions,
+            ],
+            'showBlocked' => [
+                'type' => 'check',
+                'label' => $this->msg('listduplicateusers-showblocked')->text(),
+                'name' => 'showBlocked',
+                'id' => 'showBlocked',
+                'default' => $this->showBlocked
             ],
             'editsOnly' => [
                 'type' => 'check',
