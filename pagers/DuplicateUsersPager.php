@@ -71,7 +71,8 @@ class DuplicateUsersPager extends AlphabeticPager {
         if (in_array($this->requestedGroup, $symsForAll)) {
             $this->requestedGroup = '';
         }
-        $this->showBlocked = $request->getBool('showBlocked', false);
+
+        $this->showBlocked = ($request->getVal('wpsubmit') === null ? true : $request->getBool('showBlocked', false));
         $this->editsOnly = $request->getBool('editsOnly');
         $this->creationSort = $request->getBool('creationSort');
         $this->including = $including;
