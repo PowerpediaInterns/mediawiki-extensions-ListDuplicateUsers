@@ -94,24 +94,10 @@ class DuplicateUsersPager extends AlphabeticPager {
     }
 
     /**
-     * @return string|string[]
+     * @return string|string[]|array[]
      */
     function getIndexField() {
-        return [
-            'user_email',
-            ($this->creationSort ? 'user_id' : 'user_name')
-        ];
-    }
-
-    /**
-     * @return array
-     */
-    function getOrderTypeMessages() {
-        return [
-            'user_id' => 'listduplicateusers-userid',
-            'user_name' => 'listduplicateusers-username',
-            'user_email' => 'listduplicateusers-useremail'
-        ];
+        return ($this->creationSort ? 'user_id' : 'id');
     }
 
     /**
@@ -155,6 +141,7 @@ class DuplicateUsersPager extends AlphabeticPager {
 
         $options['GROUP BY'] = ($this->creationSort ? 'user_id' : 'user_name');
 
+        // B query.
         $bQuery = [
             'tables' => ['user'],
             'fields' => ['user_email'],
@@ -167,7 +154,8 @@ class DuplicateUsersPager extends AlphabeticPager {
         ];
         $bSqlText = $dbr->selectSQLText($bQuery['tables'], $bQuery['fields'], $bQuery['conds'], __METHOD__, $bQuery['options'], $bQuery['join_conds']);
 
-        $query = [
+        // A query.
+        $aQuery = [
             'tables' => [
                 'a' => 'user',
                 'b' => new Subquery($bSqlText),
@@ -186,8 +174,7 @@ class DuplicateUsersPager extends AlphabeticPager {
             'join_conds' => [
                 'b' => ['JOIN', 'a.user_email = b.user_email'],
                 'user_groups' => ['LEFT JOIN', 'user_id=ug_user'],
-                'ipblocks' => [
-                    'LEFT JOIN', [
+                'ipblocks' => ['LEFT JOIN', [
                         'user_id=ipb_user',
                         'ipb_auto' => 0
                     ]
@@ -195,7 +182,58 @@ class DuplicateUsersPager extends AlphabeticPager {
             ],
             'conds' => $conds
         ];
+        $aSqlText = $dbr->selectSQLText($aQuery['tables'], $aQuery['fields'], $aQuery['conds'], __METHOD__, $aQuery['options'], $aQuery['join_conds']);
 
+        // Min user ID query.
+        $minUserIdQuery = [
+            'tables' => ['user'],
+            'fields' => ['MIN(user_id)'],
+            'conds' => ['user_email = t.user_email'],
+            'options' => [],
+            'join_conds' => []
+        ];
+        $minUserIdSqlText = $dbr->selectSQLText($minUserIdQuery['tables'], $minUserIdQuery['fields'], $minUserIdQuery['conds'], __METHOD__, $minUserIdQuery['options'], $minUserIdQuery['join_conds']);
+
+        // Order query.
+        $orderQuery = [
+            'tables' => [
+                'r' => new Subquery('SELECT @row_number := 0'),
+                't' => new Subquery($aSqlText)
+            ],
+            'fields' => [
+                'id' => new Subquery('@row_number := @row_number + 1'),
+                'min_user_id' => new Subquery($minUserIdSqlText),
+                't.user_name',
+                't.user_id',
+                't.user_email',
+                't.edits',
+                't.creation',
+                't.ipb_deleted'
+            ],
+            'conds' => [],
+            'options' => ['ORDER BY' => ['min_user_id', 'user_id']],
+            'join_conds' => []
+        ];
+        $orderSqlText = $dbr->selectSQLText($orderQuery['tables'], $orderQuery['fields'], $orderQuery['conds'], __METHOD__, $orderQuery['options'], $orderQuery['join_conds']);
+
+        // Wrapper query.
+        $query = [
+            'tables' => [
+                'o' => new Subquery($orderSqlText)
+            ],
+            'fields' => [
+                'o.id',
+                'o.user_name',
+                'o.user_id',
+                'o.user_email',
+                'o.edits',
+                'o.creation',
+                'o.ipb_deleted'
+            ],
+            'conds' => [],
+            'options' => [],
+            'join_conds' => []
+        ];
 //        $sqlText = $dbr->selectSQLText($query['tables'], $query['fields'], $query['conds'], __METHOD__, $query['options'], $query['join_conds']);
 //        $output = $this->getOutput();
 //        $output->addHTML("\r\n" . $sqlText . "\r\n\r\n\r\n<br/><br/>");
@@ -244,7 +282,7 @@ class DuplicateUsersPager extends AlphabeticPager {
         $email = $wordSeparator . Html::rawElement('a', [
             'class' => 'email mw-useremail',
             'href' => "mailto:$userEmail",
-            'data-email' => "$userEmail"
+            'data-email' => $userEmail
         ], $userEmail);
 
         if ($row->ipb_deleted) {
