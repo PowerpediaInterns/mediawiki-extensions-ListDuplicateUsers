@@ -201,7 +201,7 @@ class DuplicateUsersPager extends AlphabeticPager {
                 't' => new Subquery($aSqlText)
             ],
             'fields' => [
-                'id' => '(@row_number := @row_number + 1)',
+                'id' => new Subquery('@row_number := @row_number + 1'),
                 'min_user_id' => new Subquery($minUserIdSqlText),
                 't.user_name',
                 't.user_id',
