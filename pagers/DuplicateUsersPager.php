@@ -144,7 +144,10 @@ class DuplicateUsersPager extends AlphabeticPager {
         // B query.
         $bQuery = [
             'tables' => ['user'],
-            'fields' => ['user_email'],
+            'fields' => [
+                'min_user_id' => 'min(user_id)',
+                'user_email'
+            ],
             'conds' => ['char_length(user_email) > 0'],
             'options' => [
                 'GROUP BY' => 'user_email',
@@ -163,19 +166,20 @@ class DuplicateUsersPager extends AlphabeticPager {
                 'ipblocks'
             ],
             'fields' => [
-                'user_name' => ($this->creationSort ? 'MAX(user_name)' : 'user_name'),
-                'user_id' => ($this->creationSort ? 'user_id' : 'MAX(user_id)'),
-                'user_email' => ($this->creationSort ? 'MAX(a.user_email)' : 'a.user_email'),
-                'edits' => 'MAX(user_editcount)',
-                'creation' => 'MIN(user_registration)',
-                'ipb_deleted' => 'MAX(ipb_deleted)' // Block/hide status.
+                'user_id' => ($this->creationSort ? 'user_id' : 'max(user_id)'),
+                'b.min_user_id',
+                'user_name' => ($this->creationSort ? 'max(user_name)' : 'user_name'),
+                'user_email' => ($this->creationSort ? 'max(a.user_email)' : 'a.user_email'),
+                'edits' => 'max(user_editcount)',
+                'creation' => 'min(user_registration)',
+                'ipb_deleted' => 'max(ipb_deleted)' // Block/hide status.
             ],
             'options' => $options,
             'join_conds' => [
                 'b' => ['JOIN', 'a.user_email = b.user_email'],
-                'user_groups' => ['LEFT JOIN', 'user_id=ug_user'],
+                'user_groups' => ['LEFT JOIN', 'user_id = ug_user'],
                 'ipblocks' => ['LEFT JOIN', [
-                        'user_id=ipb_user',
+                        'user_id = ipb_user',
                         'ipb_auto' => 0
                     ]
                 ]
@@ -183,16 +187,6 @@ class DuplicateUsersPager extends AlphabeticPager {
             'conds' => $conds
         ];
         $aSqlText = $dbr->selectSQLText($aQuery['tables'], $aQuery['fields'], $aQuery['conds'], __METHOD__, $aQuery['options'], $aQuery['join_conds']);
-
-        // Min user ID query.
-        $minUserIdQuery = [
-            'tables' => ['user'],
-            'fields' => ['MIN(user_id)'],
-            'conds' => ['user_email = t.user_email'],
-            'options' => [],
-            'join_conds' => []
-        ];
-        $minUserIdSqlText = $dbr->selectSQLText($minUserIdQuery['tables'], $minUserIdQuery['fields'], $minUserIdQuery['conds'], __METHOD__, $minUserIdQuery['options'], $minUserIdQuery['join_conds']);
 
         // Order query.
         $orderQuery = [
@@ -202,9 +196,9 @@ class DuplicateUsersPager extends AlphabeticPager {
             ],
             'fields' => [
                 'id' => new Subquery('@row_number := @row_number + 1'),
-                'min_user_id' => new Subquery($minUserIdSqlText),
-                't.user_name',
                 't.user_id',
+                't.min_user_id',
+                't.user_name',
                 't.user_email',
                 't.edits',
                 't.creation',
@@ -223,8 +217,8 @@ class DuplicateUsersPager extends AlphabeticPager {
             ],
             'fields' => [
                 'o.id',
-                'o.user_name',
                 'o.user_id',
+                'o.user_name',
                 'o.user_email',
                 'o.edits',
                 'o.creation',
